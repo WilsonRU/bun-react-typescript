@@ -1,6 +1,7 @@
 import { type ReactNode, createContext } from "react";
-import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
 import { userStore } from "@/utils/store/user-store";
 import { httpClient } from "@/lib/http-client";
 
@@ -14,81 +15,87 @@ interface Account {
 	name: string;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 interface AuthContextType {
 	authenticated: boolean;
-	user: Account;
-	signin: (email: string, password: string) => void;
-	signup: (email: string, password: string, name: string) => void;
-	forgotPassword: (email: string) => void;
+	user: Account | null;
+	signin: (email: string, password: string) => Promise<void>;
+	signup: (email: string, password: string, name: string) => Promise<void>;
+	forgotPassword: (email: string) => Promise<void>;
 	logout: () => void;
 }
+
+export const AuthContext = createContext<AuthContextType>({
+	authenticated: false,
+	user: null,
+	signin: async () => {},
+	signup: async () => {},
+	forgotPassword: async () => {},
+	logout: () => {},
+});
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const { post } = new httpClient();
 	const navigate = useNavigate();
 
-	const { setInitialData, clearUser, hasToken, getUser } = userStore();
+	const { setInitialData, clear, hasToken, getUser } = userStore();
+
+	const handleError = async (err: any) => {
+		try {
+			const httpErr = await err.response?.json();
+			toast.error(httpErr.message || "Erro inesperado");
+		} catch {
+			toast.error("Falha ao conectar com o servidor");
+		}
+	};
 
 	const signin = async (email: string, password: string) => {
-		await post("core/login", { email, password })
-			.then((response) => {
-				setInitialData({
-					id: response.user.id,
-					name: response.user.name,
-					email: response.user.email,
-					token: response.token,
-				});
-				navigate("/dashboard");
-			})
-			.catch(async (err) => {
-				const httpErr = await err.response.json();
-				toast.error(httpErr.message);
+		try {
+			const response = await post("core/login", { email, password });
+			setInitialData({
+				id: response.user.id,
+				name: response.user.name,
+				email: response.user.email,
+				token: response.token,
 			});
+			navigate("/dashboard");
+		} catch (err) {
+			handleError(err);
+		}
 	};
 
 	const signup = async (email: string, password: string, name: string) => {
-		await post("core/signup", { email, password, name })
-			.then((response) => {
-				toast.success(response.message);
-				navigate("/");
-			})
-			.catch(async (err) => {
-				const httpErr = await err.response.json();
-				toast.error(httpErr.message);
-			});
+		try {
+			const response = await post("core/signup", { email, password, name });
+			toast.success(response.message);
+			navigate("/");
+		} catch (err) {
+			handleError(err);
+		}
 	};
 
 	const forgotPassword = async (email: string) => {
-		await post("core/forgot-password", { email })
-			.then((response) => {
-				toast(response.message);
-				navigate("/");
-			})
-			.catch(async (err) => {
-				const httpErr = await err.response.json();
-				toast.error(httpErr.message);
-			});
+		try {
+			const response = await post("core/forgot-password", { email });
+			toast.success(response.message);
+			navigate("/");
+		} catch (err) {
+			handleError(err);
+		}
 	};
 
 	const logout = () => {
-		clearUser();
 		navigate("/");
+		clear();
 	};
 
-	return (
-		<AuthContext.Provider
-			value={{
-				authenticated: hasToken,
-				user: getUser as Account,
-				signin,
-				signup,
-				forgotPassword,
-				logout,
-			}}
-		>
-			{children}
-		</AuthContext.Provider>
-	);
+	const contextValue: AuthContextType = {
+		authenticated: Boolean(hasToken),
+		user: getUser && Object.keys(getUser).length > 0 ? (getUser as Account) : null,
+		signin,
+		signup,
+		forgotPassword,
+		logout,
+	};
+
+	return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };

@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 
 import Routes from "@/routes";
+import { StrictMode } from "react";
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -17,10 +18,12 @@ const queryClient = new QueryClient({
 });
 
 createRoot(document.getElementById("root")!).render(
-	<QueryClientProvider client={queryClient}>
-		<BrowserRouter>
-			<Toaster />
-			<Routes />
-		</BrowserRouter>
-	</QueryClientProvider>,
+	<StrictMode>
+		<QueryClientProvider client={queryClient}>
+			<BrowserRouter>
+				<Toaster />
+				<Routes />
+			</BrowserRouter>
+		</QueryClientProvider>
+	</StrictMode>,
 );

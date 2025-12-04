@@ -8,7 +8,7 @@ interface UserState {
 	token: string;
 	updateName: (newName: string) => void;
 	setInitialData: (initialData: { id: number; name: string; email: string; token: string }) => void;
-	clearUser: () => void;
+	clear: () => void;
 	get hasToken(): boolean;
 	get getUser(): object;
 }
@@ -22,7 +22,7 @@ export const userStore = create<UserState>()(
 			token: "",
 			updateName: (newName) => set({ name: newName }),
 			setInitialData: (initialData) => set(initialData),
-			clearUser: () =>
+			clear: () =>
 				set({
 					id: 0,
 					name: "",
