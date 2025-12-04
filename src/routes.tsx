@@ -1,13 +1,14 @@
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Route, useLocation, Routes as Routing, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/utils/contexts/auth";
 
+import { useAuth } from "@/utils/hooks/use-auth";
+import { useFeatureFlag } from "@/utils/hooks/use-featureFlag";
+
 import { Signin } from "@/modules/core/signin";
 import { Signup } from "@/modules/core/signup";
 import { ForgotPassword } from "@/modules/core/forgotPassword";
-import { useAuth } from "./utils/hooks/use-auth";
-import { useFeatureFlag } from "./utils/hooks/use-featureFlag";
 
 interface GuardProps {
 	children: ReactNode;
