@@ -9,13 +9,11 @@ interface UserState {
 	updateName: (newName: string) => void;
 	setInitialData: (initialData: { id: number; name: string; email: string; token: string }) => void;
 	clear: () => void;
-	get hasToken(): boolean;
-	get getUser(): object;
 }
 
 export const userStore = create<UserState>()(
 	persist(
-		(set, get) => ({
+		(set) => ({
 			id: 0,
 			name: "",
 			email: "",
@@ -29,13 +27,6 @@ export const userStore = create<UserState>()(
 					email: "",
 					token: "",
 				}),
-			get hasToken() {
-				return get().token.trim().length > 0;
-			},
-			get getUser() {
-				const { id, email, name } = get();
-				return { id, email, name };
-			},
 		}),
 		{
 			name: "user-storage",
