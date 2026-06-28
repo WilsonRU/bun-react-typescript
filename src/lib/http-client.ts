@@ -1,70 +1,54 @@
 import ky from "ky";
 
-export class httpClient {
-	private api: typeof ky;
+import { env } from "@/config/env";
+import { userStore } from "@/utils/store/user-store";
 
-	constructor() {
-		this.api = ky.create({
-			prefixUrl: import.meta.env.VITE_API_URL || "http://localhost:4001/api/",
-			headers: {
-				Accept: "application/json",
-			},
-		});
-	}
+export const AUTH_SESSION_EXPIRED_EVENT = "auth:session-expired";
 
-	async get(route: string): Promise<any> {
-		return await this.api
-			.get(route, {
-				headers: {
-					Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+export class HttpClient {
+	private api = ky.create({
+		prefixUrl: env.apiUrl,
+		headers: {
+			Accept: "application/json",
+		},
+		hooks: {
+			beforeRequest: [
+				(request) => {
+					const { token } = userStore.getState();
+
+					if (token) {
+						request.headers.set("Authorization", `Bearer ${token}`);
+					}
 				},
-			})
-			.json();
-	}
-
-	async post(route: string, body: unknown): Promise<any> {
-		return await this.api
-			.post(route, {
-				json: body,
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+			],
+			afterResponse: [
+				(_request, _options, response) => {
+					if (response.status === 401) {
+						userStore.getState().clear();
+						window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
+					}
 				},
-			})
-			.json();
-	}
+			],
+		},
+	});
 
-	async put(route: string, body: unknown): Promise<any> {
-		return await this.api
-			.put(route, {
-				json: body,
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-				},
-			})
-			.json();
-	}
+	get = async <TResponse = unknown>(route: string): Promise<TResponse> => {
+		return await this.api.get(route).json<TResponse>();
+	};
 
-	async patch(route: string, body: unknown): Promise<any> {
-		return await this.api
-			.patch(route, {
-				json: body,
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-				},
-			})
-			.json();
-	}
+	post = async <TResponse = unknown>(route: string, body: unknown): Promise<TResponse> => {
+		return await this.api.post(route, { json: body }).json<TResponse>();
+	};
 
-	async delete(route: string): Promise<any> {
-		return await this.api
-			.delete(route, {
-				headers: {
-					Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-				},
-			})
-			.json();
-	}
+	put = async <TResponse = unknown>(route: string, body: unknown): Promise<TResponse> => {
+		return await this.api.put(route, { json: body }).json<TResponse>();
+	};
+
+	patch = async <TResponse = unknown>(route: string, body: unknown): Promise<TResponse> => {
+		return await this.api.patch(route, { json: body }).json<TResponse>();
+	};
+
+	delete = async <TResponse = unknown>(route: string): Promise<TResponse> => {
+		return await this.api.delete(route).json<TResponse>();
+	};
 }
